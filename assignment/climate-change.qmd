@@ -1,6 +1,6 @@
 ---
 title: "Climate Change Module"
-author: 'Add name'
+author: 'Owen Egan'
 format:
   html:
     embed-resources: true
@@ -31,6 +31,7 @@ co2 <-  read_table("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_mm_mlo.txt"
                   na = c("-1", "-99.99"))
 co2
 ```
+
 
 ```{r}
 ggplot(co2, aes(x = decimal_date, y = monthly_average)) + 
@@ -108,11 +109,11 @@ Plot the trend in global mean temperatures over time. Describe what you see in t
 **Answer 5:**
 
 ```{r}
-ggplot(data, aes(x = Year)) +
+ggplot(climate, aes(x = Year)) +
   geom_line(aes(y = No_Smoothing, color = "Annual Mean")) +
   geom_line(aes(y = Lowess_5, color = "Lowess Smoothing")) +
   labs(title = "Global Mean Temperature Trends",
-       x = "Year", y = "Temperature Anomaly (°C)",
+       x = "Year", y = "Temperature Anomaly (C)",
        color = "Legend") +
   theme_minimal()
 ```
@@ -131,7 +132,6 @@ Use a search engine (e.g., Google) or a chat LLM to find out how to calculate a 
 **Answer 6:**
 
 In order to calculate a rolling average in R, you must use the rollmean() function. I simply looked up on Google "how do you calculate a rolling average in R" and this was the first response under the "AI Overview" tab. It advised me that list function uses the "zoo" package and is formatted like so rollmean(your_data, k = window_size, fill = NA, align = "right"). I have to modify the code to include my data the desired window size, the fill, and the allignment. 
-
 **Question 7:**
 
 -   What is the meaning of "5-year average" vs. "annual average"?
@@ -142,7 +142,6 @@ In order to calculate a rolling average in R, you must use the rollmean() functi
 The annual average is the average temperature anomaly for a single year. A 5-year average is the average temperature anomalies over a 5 year period, or window. 
 
 ```{r message=FALSE}
-install.packages("zoo")
 library(zoo)
 
 climate <- read_table("https://data.giss.nasa.gov/gistemp/graphs/graph_data/Global_Mean_Estimates_based_on_Land_and_Ocean_Data/graph.txt", 
@@ -165,9 +164,9 @@ Plot the different averages on the *same plot* and describe what differences you
 
 ```{r}
 ggplot(climate, aes(x = Year)) +
-  geom_line(aes(y = Rolling_5, color = "5-Year Avg"), size = 1) +
-  geom_line(aes(y = Rolling_10, color = "10-Year Avg"), size = 1) +
-  geom_line(aes(y = Rolling_20, color = "20-Year Avg"), size = 1) +
+  geom_line(aes(y = Rolling_5, color = "5-Year Avg")) +
+  geom_line(aes(y = Rolling_10, color = "10-Year Avg")) +
+  geom_line(aes(y = Rolling_20, color = "20-Year Avg")) +
   labs(title = "Global Average Temperature with Rolling Averages",
        x = "Year", y = "Temperature Anomaly (°C)",
        color = "Legend") +
@@ -224,8 +223,53 @@ Your answer to Question 10 is going to be a mix of code chunks and text that you
 
 **Answer 10:**
 
-```{r}
+The dataset has columns depth, ice age, air age and CO2 ppm. The units are meters, years, years, and ppm respectively. The temporal resolution is yearly, and the numbers come from historical records of the vostok ice core. Overall, there has been a sharp continuing increase the the atmospheric CO2 levels of today when compare to historical numbers. 
 
+```{r message=FALSE}
+library(readr)
+
+vostok <- read_table("https://data.ess-dive.lbl.gov/catalog/d1/mn/v2/object/ess-dive-457358fdc81d3a5-20180726T203952542", 
+                     skip = 20, 
+                     col_names = c("Depth_m", "Ice_Age_BP", "Air_Age_BP", "CO2_ppm"), 
+                     na = c("-1", "-99.99"))
+
+vostok <- vostok |> 
+  mutate(across(everything(), as.numeric)) |> 
+  mutate(Calendar_Year = 1950 - Air_Age_BP) |> 
+  arrange(Calendar_Year)  
+
+ggplot(vostok, aes(x = Calendar_Year, y = CO2_ppm)) +
+  geom_line(color = "blue") +
+  geom_point(size = 0.5, color = "red") +
+  labs(title = "Vostok Ice Core CO2 Concentration Over Time",
+       x = "Year",
+       y = "CO2 Concentration (ppm)") +
+  theme_minimal()
+
+mauna_loa <- read_table("https://data.giss.nasa.gov/gistemp/graphs/graph_data/Global_Mean_Estimates_based_on_Land_and_Ocean_Data/graph.txt", 
+                        skip = 5,
+                        col_names = c("Year", "No_Smoothing", "Lowess_5"),
+                        na = c("-1", "-99.99")) %>%
+  select(Calendar_Year = Year, CO2_ppm = No_Smoothing) %>%
+  drop_na()
+
+# Combine both datasets
+combined_CO2 <- bind_rows(vostok, mauna_loa)
+
+combined_CO2 <- bind_rows(vostok, mauna_loa) %>%
+  arrange(Calendar_Year)  
+
+ggplot(combined_CO2, aes(x = Calendar_Year, y = CO2_ppm)) +
+  geom_line(color = "blue", size = 0.8) +  
+  geom_point(data = filter(combined_CO2, Calendar_Year >= 1958), 
+             aes(x = Calendar_Year, y = CO2_ppm), 
+             color = "red", size = 1.2) +  
+  scale_x_continuous(limits = c(-420000, 2025), breaks = seq(-400000, 2025, by = 50000)) + 
+  labs(title = "Atmospheric CO₂ Over Time: Ice Core vs. Modern Measurements",
+       x = "Year (Historical Data on Left, Modern Data on Right)",
+       y = "CO2 Concentration (ppm)")
+  theme_minimal() +
+  theme(text = element_text(size = 14))
 
 ```
 
@@ -236,3 +280,5 @@ Remember to Render your document as HTML and comment+push to GitHub your code an
 # Attribution
 
 Include citation of any AI-generated assistance or discussion with classmates (per policy in syllabus). Proper documentation of AI-generated assistance includes the prompt, the source (e.g., ChatGPT), and the significant parts of the response. Proper documentation of discussion with classmates include listing their names and the components discussed.
+
+I used chatGPT for question #10, #7 and #5 pretty thoroughly and helped with solving
