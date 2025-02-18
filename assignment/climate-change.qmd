@@ -81,7 +81,7 @@ Describe the data set to the best of your ability, given the documentation provi
 -   Describe the class of each column and what units it is measured in.
 -   What is the difference between "global temperature" and "global temperature anomaly"?
 
-**Answer 3: The data is from NASA**
+**Answer 3:**
 
 The data is gathered by NASA at the Goddard Institute for Space Studies (GISS). The year column in numeric and is simply the year the data was recorded in. No_Smoothing is a numeric and shows the actual mean global temperature in degrees celcius. Lowess_5 is a numeric and represents the mean global temperature in degrees celcius with a LOWESS (Locally Weighted Scatterplot Smoothing) degree of 5 for visual purposed and to better view the trend in the data. The difference between global temperature (recorded value per year) and the global temperature anomaly is that the anomaly shows the change in global surface temperature compared to the long-term average from 1951 to 1980. The dataset uses this period as a baseline average to view how the temperatures changed from 1880 to 2024 in reference to this average.
 
@@ -105,17 +105,18 @@ climate
 
 Plot the trend in global mean temperatures over time. Describe what you see in the plot and how you interpret the patterns you observe.
 
+**Answer 5:**
+
 ```{r}
 ggplot(data, aes(x = Year)) +
-  geom_line(aes(y = No_Smoothing, color = "No Smoothing")) +
-  geom_line(aes(y = Lowess_5, color = "Lowess(5)")) +
+  geom_line(aes(y = No_Smoothing, color = "Annual Mean")) +
+  geom_line(aes(y = Lowess_5, color = "Lowess Smoothing")) +
   labs(title = "Global Mean Temperature Trends",
        x = "Year", y = "Temperature Anomaly (°C)",
        color = "Legend") +
   theme_minimal()
 ```
-
-**Answer 5:**
+When looking at the plot, it is clear that temperatures overall have been throughout the years since 1880. The first time the temperature anomaly reached 0 for the time in 1938, and it first became positive in 1940. In the early to mid 1960s, the temperature anomaly began a rise that continued until 2024. The 10 most recent years are the warmest years on record, which goes to show just how much the Earth has been heating up as of recently, and throughout history.
 
 ## Evaluating the evidence for a "Pause" in warming?
 
@@ -129,6 +130,8 @@ Use a search engine (e.g., Google) or a chat LLM to find out how to calculate a 
 
 **Answer 6:**
 
+In order to calculate a rolling average in R, you must use the rollmean() function. I simply looked up on Google "how do you calculate a rolling average in R" and this was the first response under the "AI Overview" tab. It advised me that list function uses the "zoo" package and is formatted like so rollmean(your_data, k = window_size, fill = NA, align = "right"). I have to modify the code to include my data the desired window size, the fill, and the allignment. 
+
 **Question 7:**
 
 -   What is the meaning of "5-year average" vs. "annual average"?
@@ -136,17 +139,51 @@ Use a search engine (e.g., Google) or a chat LLM to find out how to calculate a 
 
 **Answer 7:**
 
+The annual average is the average temperature anomaly for a single year. A 5-year average is the average temperature anomalies over a 5 year period, or window. 
+
+```{r message=FALSE}
+install.packages("zoo")
+library(zoo)
+
+climate <- read_table("https://data.giss.nasa.gov/gistemp/graphs/graph_data/Global_Mean_Estimates_based_on_Land_and_Ocean_Data/graph.txt", 
+                   skip = 5,
+                   col_names = c("Year", "No_Smoothing", "Lowess_5"),
+                   na = c("-1", "-99.99"))
+
+climate$Rolling_5 <- rollmean(climate$No_Smoothing, k = 5, fill = NA, align = "right")
+climate$Rolling_10 <- rollmean(climate$No_Smoothing, k = 10, fill = NA, align = "right")
+climate$Rolling_20 <- rollmean(climate$No_Smoothing, k = 20, fill = NA, align = "right")
+
+climate
+```
+
 **Question 8:**
 
 Plot the different averages on the *same plot* and describe what differences you see and why.
 
 **Answer 8:**
 
+```{r}
+ggplot(climate, aes(x = Year)) +
+  geom_line(aes(y = Rolling_5, color = "5-Year Avg"), size = 1) +
+  geom_line(aes(y = Rolling_10, color = "10-Year Avg"), size = 1) +
+  geom_line(aes(y = Rolling_20, color = "20-Year Avg"), size = 1) +
+  labs(title = "Global Average Temperature with Rolling Averages",
+       x = "Year", y = "Temperature Anomaly (°C)",
+       color = "Legend") +
+  theme_minimal()
+```
+
+The first thing I notice about this graph above is that the 5-year average line seems to be much more jagged and there appears to be more fluctuation in the temperature anomalies than the 10 and 20-year averages. The 20-year average line appears much more rounded and smooth. This makes sense as the 20-year data is averaging 20 different yearly temperatures so there would be less variation in the points along the graph. This also explains why the 5-year average line appears much more jagged, as there is only a 5 year average which could more heavily factor in outliers, or trends in a short period.  
+
 **Question 9:**
 
 By examining the data here, what evidence do you find or not find for such a pause?
 
 **Answer 9:**
+
+When looking at this graph, in particular the 20-year rolling average line, it becomes clear that there is no pause, or hiatus in global warming. The temperature anomaly has been steadily increasing since the late 1960s and early 1970s. Seeing how smooth the 20-year average line is just shows how steadily the temperature has been increasing without pauses or breaks in the warming. Overall, there might be slight declines in average temperature per year due to weather anomalies or extreme years, but at the current rate we are progressing, there not seem to be any pauses, or breaks in global warming anytime soon. 
+
 
 ## Longer term trends in CO2 Records
 
